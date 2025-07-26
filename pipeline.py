@@ -6,12 +6,24 @@ import sqlite3
 
 import pytz
 from faker import Faker
+from typing import TypedDict, Iterator
 
 
-def get_user(size: int = 100):
+class UserData(TypedDict):
+    id: int
+    name: str
+    email: str
+    password: str
+    description: str
+
+
+def get_user(size: int = 100) -> Iterator[UserData]:
+    """Генерирует последовательность словарей с фейковыми данными пользователя.
+    
+    """
     fake = Faker()
     for i in range(size):
-        user = {
+        user: UserData = {
             "id": i,
             "name": fake.first_name(),
             "email": random.choice(
@@ -24,6 +36,9 @@ def get_user(size: int = 100):
 
 
 def generate_csv(path: pathlib.Path, fieldnames: tuple, size: int):
+    """Генерирует CSV-файл с данными пользователей.
+    
+    """
     with path.open("w", encoding="utf-8") as f:
         writer = csv.DictWriter(f=f, fieldnames=fieldnames)
         writer.writeheader()
@@ -33,6 +48,9 @@ def generate_csv(path: pathlib.Path, fieldnames: tuple, size: int):
 
 
 def init_db(path: pathlib.Path):
+    """Инициализирует базу данных SQLite.
+
+    """
     if pathlib.Path(path).exists() and pathlib.Path(path).is_file():
         pathlib.Path(path).unlink()
 
@@ -117,19 +135,18 @@ def load_data(row_generator, path: pathlib.Path):
         conn.close()
 
 
-src_path = pathlib.Path("/tmp/users.csv")
+csv_file = pathlib.Path("/tmp/users.csv")
+csv_file_fieldnames = ("id", "name", "email", "password", "description")
 db_path = pathlib.Path("/tmp/users.db")
-# db_path = ":memory:"
-src_file_fieldnames = ("id", "name", "email", "password", "description")
 num_records = 20
 
 if __name__ == "__main__":
     # 1. Генерация данных:
-    generate_csv(src_path, src_file_fieldnames, num_records)
+    generate_csv(csv_file, csv_file_fieldnames, num_records)
     # 2. Инициализация БД
     init_db(db_path)
     # 3. Инициализация генератора extract (E)
-    extract_data = extract_users(src_path)
+    extract_data = extract_users(csv_file)
     # 4. Инициализация генератора transform (T)
     transform_data = transform_users(extract_data)
     # 5. Загрузка данных (L)
